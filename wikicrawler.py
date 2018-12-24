@@ -20,27 +20,70 @@ def submitLoginForm(v_code, browser):
 
 def writeJson(browser, nextpage='2'):
 	browser.get('http://wiki.klub11.com/index.php?s=/2&page_id=' + nextpage)
-	time.sleep(2)
+	# time.sleep(2)
 
 	#切换iframe
 	browser.switch_to.frame("page-content")
 
 	#获取多个接口url
 	urls = browser.find_elements_by_xpath("//p/strong[text()='请求URL：']/../following-sibling::ul[1]/li/code")
-	for url in urls:
-		print('url:',url.text)
-
-	#获取请求方式
 	apitypes = browser.find_elements_by_xpath("//p/strong[text()='请求方式：']/../following-sibling::ul[1]/li")
-	for apitype in apitypes:
-		print('apitype:',apitype.text)
+		
+	apiList = []
+	for index,url in enumerate(urls):
+		tmp = {}
+		tmp['url'] = url.text
+		tmp['type'] = apitypes[index].text
+		tmp['params'] = []
 
-	params = browser.find_elements_by_xpath("//ul/li[text()='content参数说明']/../following-sibling::div[1]/table/tbody/tr/td[1]")
+		num = index + 1
 
-	for param in params:
-		print('param:',param.text)
+		params_name = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[1]"%(num))
+		params_require = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[2]"%(num))
+		params_type = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[3]"%(num))
+		params_description = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[4]"%(num))
 
-	browser.quit()
+		i = 1;
+		for key,param_name in enumerate(params_name):
+			#遍历父级
+			tmp_param = {}
+			tmp_param['id'] = i
+			tmp_param['pid'] = 0
+			tmp_param['fieldname'] = params_name[key].text
+			tmp_param['require'] = params_require[key].text
+			tmp_param['type'] = params_type[key].text		
+			tmp_param['description'] = params_description[key].text
+			tmp['params'].append(tmp_param)
+			
+			#如果有json，则遍历json相关参数
+			if(tmp_param['type'] == 'json'):
+				pid = i
+				i = i + 1
+				content_params_name = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[1]"%(params_name[key].text,num))
+				content_params_require = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[2]"%(params_name[key].text,num))
+				content_params_type = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[3]"%(params_name[key].text,num))
+				content_params_description = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[4]"%(params_name[key].text,num))
+				for key2,content_param_name in enumerate(content_params_name):
+					tmp_param = {}
+					tmp_param['id'] = i
+					tmp_param['pid'] = pid
+					tmp_param['fieldname'] = content_params_name[key2].text
+					tmp_param['require'] = content_params_require[key2].text
+					tmp_param['type'] = content_params_type[key2].text		
+					tmp_param['description'] = content_params_description[key2].text
+					tmp['params'].append(tmp_param)
+					i = i + 1
+			else:
+				i = i + 1
+		apiList.append(tmp)
+	if len(apiList):
+		apiList = json.dumps(apiList)
+		path = '%s.json'%(nextpage)
+		fo = open(path, "w")
+		fo.write(apiList)
+		fo.close()
+
+	# browser.quit()
 
 def browserInit():
 	chromedriver = "C:/Program Files (x86)/Google/Chrome/Application/chromedriver.exe"
@@ -69,4 +112,7 @@ browser = browserInit()
 if readCookie(browser) == False:
 	browser = login(browser)
 	writeCookie(browser)
-writeJson(browser)
+# for i in range(2,20):
+# 	writeJson(browser,str(i))
+# 	time.sleep(2)
+writeJson(browser,'96')

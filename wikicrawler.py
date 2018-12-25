@@ -100,7 +100,7 @@ def writeJson(apiList,nextpage):
 def crawlWiki(browser, nextpage='2'):
 	browser.get('http://wiki.klub11.com/index.php?s=/2&page_id=' + nextpage)
 
-	#切换iframe
+	#切换iframe test
 	browser.switch_to.frame("page-content")
 
 	#获取页面所有请求url

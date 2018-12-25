@@ -37,6 +37,14 @@ def getParams(browser,num):
 	params['description'] = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[4]"%(num))
 	return params
 
+def getJsonParams(browser,fldname,num):
+	jsonParams = {}
+	jsonParams['name'] = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[1]"%(fldname,num))
+	jsonParams['require'] = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[2]"%(fldname,num))
+	jsonParams['type'] = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[3]"%(fldname,num))
+	jsonParams['description'] = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[4]"%(fldname,num))
+	return 	jsonParams
+
 def getList(browser, urls, apitypes):
 	apiList = []
 	for index,url in enumerate(urls):
@@ -46,7 +54,6 @@ def getList(browser, urls, apitypes):
 		tmp['params'] = []
 
 		num = index + 1
-
 		
 		params = getParams(browser,num)
 
@@ -66,18 +73,15 @@ def getList(browser, urls, apitypes):
 			if(tmp_param['type'] == 'json'):
 				pid = i
 				i = i + 1
-				content_params_name = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[1]"%(params['name'][key].text,num))
-				content_params_require = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[2]"%(params['name'][key].text,num))
-				content_params_type = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[3]"%(params['name'][key].text,num))
-				content_params_description = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[4]"%(params['name'][key].text,num))
-				for key2,content_param_name in enumerate(content_params_name):
+				jsonParams = getJsonParams(browser,params['name'][key].text,num)
+				for key2,content_param_name in enumerate(jsonParams['name']):
 					tmp_param = {}
 					tmp_param['id'] = i
 					tmp_param['pid'] = pid
-					tmp_param['fieldname'] = content_params_name[key2].text
-					tmp_param['require'] = content_params_require[key2].text
-					tmp_param['type'] = content_params_type[key2].text		
-					tmp_param['description'] = content_params_description[key2].text
+					tmp_param['fieldname'] = jsonParams['name'][key2].text
+					tmp_param['require'] = jsonParams['require'][key2].text
+					tmp_param['type'] = jsonParams['type'][key2].text		
+					tmp_param['description'] = jsonParams['description'][key2].text
 					tmp['params'].append(tmp_param)
 					i = i + 1
 			else:
@@ -147,5 +151,5 @@ if readCookie(browser) == False:
 # for i in range(2,20):
 # 	crawlWiki(browser,str(i))
 # 	time.sleep(2)
-crawlWiki(browser,'73')
+crawlWiki(browser,'2')
 browser.quit()

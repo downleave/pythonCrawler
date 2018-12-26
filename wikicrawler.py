@@ -25,17 +25,25 @@ def getUrls(browser):
 		urls = browser.find_elements_by_xpath("//strong[text()='请求URL：']/following-sibling::ul[1]/li/code")
 	return urls
 
-def  getTypes(browser):
+def getTypes(browser):
 	apitypes = browser.find_elements_by_xpath("//p/strong[text()='请求方式：']/../following-sibling::ul[1]/li")
 	return apitypes
 
-def getParams(browser,num):
+def getDescription(browser):
+	descriptions = browser.find_elements_by_xpath("//p/strong[text()='请求URL：']/../preceding-sibling::ul[1]/li")
+	return descriptions
+
+def getParams(browser,num,requesttype):
 	#先获取最近的div的table
 	divNum = 1
-	paramNames = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[1]"%(num,divNum))
-	paramRequire = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[2]"%(num,divNum))
-	paramType = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[3]"%(num,divNum))
-	paramDescription = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[4]"%(num,divNum))
+	if len(requesttype) == 0:
+		strongtext = '请求URL：'
+	else:
+		strongtext = '请求方式：'
+	paramNames = browser.find_elements_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[1]"%(strongtext,num,divNum))
+	paramRequire = browser.find_elements_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[2]"%(strongtext,num,divNum))
+	paramType = browser.find_elements_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[3]"%(strongtext,num,divNum))
+	paramDescription = browser.find_elements_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[4]"%(strongtext,num,divNum))
 	
 	resultName = []
 	resultRequire = []
@@ -53,10 +61,13 @@ def getParams(browser,num):
 	#直接再找下一个div的table
 	if len(resultName) == 0:
 		divNum = divNum + 1
-		resultName = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[1]"%(num,divNum))
-		resultRequire = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[2]"%(num,divNum))
-		resultType = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[3]"%(num,divNum))
-		resultDescription = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[4]"%(num,divNum))
+		resultName = browser.find_elements_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[1]"%(strongtext,num,divNum))
+		resultRequire = browser.find_elements_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[2]"%(strongtext,num,divNum))
+		resultType = browser.find_elements_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[3]"%(strongtext,num,divNum))
+		resultDescription = browser.find_elements_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[4]"%(strongtext,num,divNum))
+		if len(resultDescription) == 0:
+			params = {}
+			return params
 
 	params = {}
 	params['name'] = resultName
@@ -66,17 +77,21 @@ def getParams(browser,num):
 	params['divNum'] = divNum
 	return params
 
-def get2ndParams(browser,num,divNum):
+def get2ndParams(browser,num,divNum,requesttype):
 	params = {}
+	if len(requesttype) == 0:
+		strongtext = '请求URL：'
+	else:
+		strongtext = '请求方式：'
 	#判断接下来是否还有参数
-	secondParamsTitle = browser.find_element_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/following-sibling::p[1]/strong"%(num,divNum))
+	secondParamsTitle = browser.find_element_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/following-sibling::p[1]/strong"%(strongtext,num,divNum))
 	#判断是否是POST参数
 	if 'POST' in secondParamsTitle.text:
 		divNum = divNum+1
-		resultName = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[1]"%(num,divNum))
-		resultRequire = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[2]"%(num,divNum))
-		resultType = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[3]"%(num,divNum))
-		resultDescription = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[4]"%(num,divNum))
+		resultName = browser.find_elements_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[1]"%(strongtext,num,divNum))
+		resultRequire = browser.find_elements_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[2]"%(strongtext,num,divNum))
+		resultType = browser.find_elements_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[3]"%(strongtext,num,divNum))
+		resultDescription = browser.find_elements_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[4]"%(strongtext,num,divNum))
 		params['name'] = resultName
 		params['require'] = resultRequire
 		params['type'] = resultType
@@ -94,6 +109,8 @@ def getJsonParams(browser,fldname,num):
 
 def formatParams(browser, params, num):
 	result = []
+	if len(params) == 0:
+		return result
 	i = 1;
 	for key,param_name in enumerate(params['name']):
 		#遍历父级
@@ -125,20 +142,33 @@ def formatParams(browser, params, num):
 			i = i + 1
 	return result
 
-def getList(browser, urls, apitypes):
+def getList(browser, urls, apitypes, descriptions):
 	apiList = []
 	for index,url in enumerate(urls):
 		tmp = {}
 		tmp['url'] = url.text
-		tmp['type'] = apitypes[index].text
+		if len(apitypes) > 0 :
+			tmp['type'] = apitypes[index].text
+		else:
+			tmp['type'] = ''
+
+		if len(descriptions) > 0 :
+			tmp['description'] = descriptions[index].text
+		else:
+			tmp['description'] = ''
+
 		tmp['params'] = []
 		tmp['secondParams'] = []
 
 		num = index + 1
 		
-		params = getParams(browser,num)
-		divNum = params['divNum']
-		secondParams = get2ndParams(browser,num,divNum)
+		params = getParams(browser,num,tmp['type'])
+		if len(params) != 0:
+			divNum = params['divNum']
+		else:
+			divNum = 1
+			
+		secondParams = get2ndParams(browser,num,divNum,tmp['type'])
 
 		tmp['params'] = formatParams(browser, params, num)
 
@@ -167,9 +197,12 @@ def crawlWiki(browser, nextpage='2'):
 
 	#获取页面所有请求方式
 	apitypes = getTypes(browser)
+
+	#获取页面所有请求描述
+	descriptions = getDescription(browser)
 		
 	#根据url和apitypes来再去爬出对应的参数，并重组成dict
-	apiList = getList(browser, urls, apitypes)
+	apiList = getList(browser, urls, apitypes, descriptions)
 	
 	#将apiList转成json并写入文件
 	writeJson(apiList,nextpage)
@@ -210,5 +243,7 @@ if readCookie(browser) == False:
 # for i in range(2,20):
 # 	crawlWiki(browser,str(i))
 # 	time.sleep(2)
-crawlWiki(browser,'4')
+# for i in range(2,220):
+# 	crawlWiki(browser,str(i))
+crawlWiki(browser,'55')
 browser.quit()

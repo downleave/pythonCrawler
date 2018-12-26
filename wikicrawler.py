@@ -30,12 +30,59 @@ def  getTypes(browser):
 	return apitypes
 
 def getParams(browser,num):
+	#先获取最近的div的table
+	divNum = 1
+	paramNames = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[1]"%(num,divNum))
+	paramRequire = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[2]"%(num,divNum))
+	paramType = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[3]"%(num,divNum))
+	paramDescription = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[4]"%(num,divNum))
+	
+	resultName = []
+	resultRequire = []
+	resultType = []
+	resultDescription = []
+	#检查是否带有apiKey\interfaceId\timestamp\sign
+	for key,name in enumerate(paramNames):
+		if name.text == 'apiKey' or name.text == 'interfaceId' or name.text == 'timestamp' or name.text == 'sign':
+			continue
+		resultName.append(paramNames[key])
+		resultRequire.append(paramRequire[key])
+		resultType.append(paramType[key])
+		resultDescription.append(paramDescription[key])
+	#第一个div除了基本参数什么都没有，所以要直接再找第二个
+	#直接再找下一个div的table
+	if len(resultName) == 0:
+		divNum = divNum + 1
+		resultName = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[1]"%(num,divNum))
+		resultRequire = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[2]"%(num,divNum))
+		resultType = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[3]"%(num,divNum))
+		resultDescription = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[4]"%(num,divNum))
+
 	params = {}
-	params['name'] = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[1]"%(num))
-	params['require'] = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[2]"%(num))
-	params['type'] = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[3]"%(num))
-	params['description'] = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[4]"%(num))
+	params['name'] = resultName
+	params['require'] = resultRequire
+	params['type'] = resultType
+	params['description'] = resultDescription
+	params['divNum'] = divNum
 	return params
+
+def get2ndParams(browser,num,divNum):
+	params = {}
+	#判断接下来是否还有参数
+	secondParamsTitle = browser.find_element_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/following-sibling::p[1]/strong"%(num,divNum))
+	#判断是否是POST参数
+	if 'POST' in secondParamsTitle.text:
+		divNum = divNum+1
+		resultName = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[1]"%(num,divNum))
+		resultRequire = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[2]"%(num,divNum))
+		resultType = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[3]"%(num,divNum))
+		resultDescription = browser.find_elements_by_xpath("(//p/strong[text()='请求方式：'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[4]"%(num,divNum))
+		params['name'] = resultName
+		params['require'] = resultRequire
+		params['type'] = resultType
+		params['description'] = resultDescription
+	return params
+
 
 def getJsonParams(browser,fldname,num):
 	jsonParams = {}
@@ -45,6 +92,39 @@ def getJsonParams(browser,fldname,num):
 	jsonParams['description'] = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[4]"%(fldname,num))
 	return 	jsonParams
 
+def formatParams(browser, params, num):
+	result = []
+	i = 1;
+	for key,param_name in enumerate(params['name']):
+		#遍历父级
+		tmp_param = {}
+		tmp_param['id'] = i
+		tmp_param['pid'] = 0
+		tmp_param['fieldname'] = params['name'][key].text
+		tmp_param['require'] = params['require'][key].text
+		tmp_param['type'] = params['type'][key].text
+		tmp_param['description'] = params['description'][key].text
+		result.append(tmp_param)
+		
+		#如果有json，则遍历json相关参数
+		if(tmp_param['type'] == 'json'):
+			pid = i
+			i = i + 1
+			jsonParams = getJsonParams(browser,params['name'][key].text,num)
+			for key2,content_param_name in enumerate(jsonParams['name']):
+				tmp_param = {}
+				tmp_param['id'] = i
+				tmp_param['pid'] = pid
+				tmp_param['fieldname'] = jsonParams['name'][key2].text
+				tmp_param['require'] = jsonParams['require'][key2].text
+				tmp_param['type'] = jsonParams['type'][key2].text		
+				tmp_param['description'] = jsonParams['description'][key2].text
+				result.append(tmp_param)
+				i = i + 1
+		else:
+			i = i + 1
+	return result
+
 def getList(browser, urls, apitypes):
 	apiList = []
 	for index,url in enumerate(urls):
@@ -52,40 +132,19 @@ def getList(browser, urls, apitypes):
 		tmp['url'] = url.text
 		tmp['type'] = apitypes[index].text
 		tmp['params'] = []
+		tmp['secondParams'] = []
 
 		num = index + 1
 		
 		params = getParams(browser,num)
+		divNum = params['divNum']
+		secondParams = get2ndParams(browser,num,divNum)
 
-		i = 1;
-		for key,param_name in enumerate(params['name']):
-			#遍历父级
-			tmp_param = {}
-			tmp_param['id'] = i
-			tmp_param['pid'] = 0
-			tmp_param['fieldname'] = params['name'][key].text
-			tmp_param['require'] = params['require'][key].text
-			tmp_param['type'] = params['type'][key].text		
-			tmp_param['description'] = params['description'][key].text
-			tmp['params'].append(tmp_param)
-			
-			#如果有json，则遍历json相关参数
-			if(tmp_param['type'] == 'json'):
-				pid = i
-				i = i + 1
-				jsonParams = getJsonParams(browser,params['name'][key].text,num)
-				for key2,content_param_name in enumerate(jsonParams['name']):
-					tmp_param = {}
-					tmp_param['id'] = i
-					tmp_param['pid'] = pid
-					tmp_param['fieldname'] = jsonParams['name'][key2].text
-					tmp_param['require'] = jsonParams['require'][key2].text
-					tmp_param['type'] = jsonParams['type'][key2].text		
-					tmp_param['description'] = jsonParams['description'][key2].text
-					tmp['params'].append(tmp_param)
-					i = i + 1
-			else:
-				i = i + 1
+		tmp['params'] = formatParams(browser, params, num)
+
+		if len(secondParams) != 0:
+			tmp['secondParams'] = formatParams(browser, secondParams, num)
+
 		apiList.append(tmp)
 	return apiList
 
@@ -138,8 +197,8 @@ def readCookie(browser):
 	browser.add_cookie(cookie[0])
 	# 尝试是否登录成功
 	browser.get('http://wiki.klub11.com/index.php?s=/2&page_id=2')
-	browser.switch_to.frame("page-content")
-	check_is_login = browser.find_elements_by_xpath("//h3[text()='会员资料创建和变动']")
+	# browser.switch_to.frame("page-content")
+	check_is_login = browser.find_elements_by_xpath("//a[@class='show_cut_title']")
 	if len(check_is_login):
 		return True
 	return False
@@ -151,5 +210,5 @@ if readCookie(browser) == False:
 # for i in range(2,20):
 # 	crawlWiki(browser,str(i))
 # 	time.sleep(2)
-crawlWiki(browser,'2')
+crawlWiki(browser,'4')
 browser.quit()

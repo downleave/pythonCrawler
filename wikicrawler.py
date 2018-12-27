@@ -37,7 +37,7 @@ def getDescription(browser):
 		descriptions = browser.find_elements_by_xpath("//strong[text()='请求URL：']/preceding-sibling::ul[1]/li/ul/li/a")
 	if len(descriptions) == 0:
 		descriptions = browser.find_elements_by_xpath("//strong[text()='请求URL：']/preceding-sibling::ul[1]/li")
-	return descriptions
+	return descriptions	
 
 def getParams(browser,num,requesttype):
 	#先获取最近的div的table
@@ -129,6 +129,21 @@ def getCategory(browser):
 
 	return 1 if category.get_attribute('title') == '微信接口' else 0
 
+def getPrefix(browser):
+	#先判断是否三级接口
+	category = browser.find_elements_by_xpath("//li[@class='active']/../..")
+	if len(category) == 0 :
+		return ''
+	if category[0].get_attribute('class') == 'third-child-catalog':
+		#是三级接口,取父级作为前缀
+		prefix = browser.find_element_by_xpath("//li[@class='active']/../preceding-sibling::a[1]")
+		prefix = prefix.get_attribute('title')
+	else:
+		#非三级接口,取自己作为前缀
+		prefix = browser.find_element_by_xpath("//li[@class='active']/a")
+		prefix = prefix.text
+	return prefix
+
 def formatParams(browser, params, num):
 	result = []
 	if len(params) == 0:
@@ -164,7 +179,7 @@ def formatParams(browser, params, num):
 			i = i + 1
 	return result
 
-def getList(browser, urls, apitypes, descriptions, category):
+def getList(browser, urls, apitypes, descriptions, category, prefix):
 	apiList = []
 	for index,url in enumerate(urls):
 		tmp = {}
@@ -176,7 +191,7 @@ def getList(browser, urls, apitypes, descriptions, category):
 			tmp['type'] = ''
 
 		if len(descriptions) > 0 :
-			tmp['description'] = descriptions[index].text
+			tmp['description'] = prefix + '-' + descriptions[index].text
 		else:
 			tmp['description'] = ''
 
@@ -213,6 +228,7 @@ def crawlWiki(browser, nextpage='2'):
 	browser.get('http://wiki.klub11.com/index.php?s=/2&page_id=' + nextpage)
 
 	category = getCategory(browser)
+	prefix = getPrefix(browser)
 
 	#切换iframe test
 	browser.switch_to.frame("page-content")
@@ -227,7 +243,7 @@ def crawlWiki(browser, nextpage='2'):
 	descriptions = getDescription(browser)
 		
 	#根据url和apitypes来再去爬出对应的参数，并重组成dict
-	apiList = getList(browser, urls, apitypes, descriptions, category)
+	apiList = getList(browser, urls, apitypes, descriptions, category, prefix)
 	
 	#将apiList转成json并写入文件
 	writeJson(apiList,nextpage)
@@ -268,7 +284,7 @@ if readCookie(browser) == False:
 # for i in range(2,20):
 # 	crawlWiki(browser,str(i))
 # 	time.sleep(2)
-for i in range(2,300):
+for i in range(2,200):
 	crawlWiki(browser,str(i))
-# crawlWiki(browser,'83')
+# crawlWiki(browser,'73')
 browser.quit()

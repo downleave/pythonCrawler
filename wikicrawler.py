@@ -30,7 +30,13 @@ def getTypes(browser):
 	return apitypes
 
 def getDescription(browser):
-	descriptions = browser.find_elements_by_xpath("//p/strong[text()='请求URL：']/../preceding-sibling::ul[1]/li")
+	descriptions = browser.find_elements_by_xpath("//p/strong[text()='请求URL：']/../preceding-sibling::ul[1]/li/ul/li/a")
+	if len(descriptions) == 0:
+		descriptions = browser.find_elements_by_xpath("//p/strong[text()='请求URL：']/../preceding-sibling::ul[1]/li")
+	if len(descriptions) == 0:
+		descriptions = browser.find_elements_by_xpath("//strong[text()='请求URL：']/preceding-sibling::ul[1]/li/ul/li/a")
+	if len(descriptions) == 0:
+		descriptions = browser.find_elements_by_xpath("//strong[text()='请求URL：']/preceding-sibling::ul[1]/li")
 	return descriptions
 
 def getParams(browser,num,requesttype):
@@ -84,9 +90,11 @@ def get2ndParams(browser,num,divNum,requesttype):
 	else:
 		strongtext = '请求方式：'
 	#判断接下来是否还有参数
-	secondParamsTitle = browser.find_element_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/following-sibling::p[1]/strong"%(strongtext,num,divNum))
+	secondParamsTitle = browser.find_elements_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/following-sibling::p[1]/strong"%(strongtext,num,divNum))
+	if len(secondParamsTitle) == 0:
+		return params
 	#判断是否是POST参数
-	if 'POST' in secondParamsTitle.text:
+	if 'POST' in secondParamsTitle[0].text:
 		divNum = divNum+1
 		resultName = browser.find_elements_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[1]"%(strongtext,num,divNum))
 		resultRequire = browser.find_elements_by_xpath("(//p/strong[text()='%s'])[%s]/../following-sibling::div[%s]/table/tbody/tr/td[2]"%(strongtext,num,divNum))
@@ -107,6 +115,20 @@ def getJsonParams(browser,fldname,num):
 	jsonParams['description'] = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[4]"%(fldname,num))
 	return 	jsonParams
 
+def getCategory(browser):
+	#先判断是否三级接口
+	category = browser.find_elements_by_xpath("//li[@class='active']/../..")
+	if len(category) == 0 :
+		return ''
+	if category[0].get_attribute('class') == 'third-child-catalog':
+		#是三级接口
+		category = browser.find_element_by_xpath("//li[@class='active']/../../../preceding-sibling::a[1]")
+	else:
+		#非三级接口
+		category = browser.find_element_by_xpath("//li[@class='active']/../preceding-sibling::a[1]")
+
+	return 1 if category.get_attribute('title') == '微信接口' else 0
+
 def formatParams(browser, params, num):
 	result = []
 	if len(params) == 0:
@@ -118,7 +140,7 @@ def formatParams(browser, params, num):
 		tmp_param['id'] = i
 		tmp_param['pid'] = 0
 		tmp_param['fieldname'] = params['name'][key].text
-		tmp_param['require'] = params['require'][key].text
+		tmp_param['require'] = 1 if params['require'][key].text == '是' else 0
 		tmp_param['type'] = params['type'][key].text
 		tmp_param['description'] = params['description'][key].text
 		result.append(tmp_param)
@@ -133,7 +155,7 @@ def formatParams(browser, params, num):
 				tmp_param['id'] = i
 				tmp_param['pid'] = pid
 				tmp_param['fieldname'] = jsonParams['name'][key2].text
-				tmp_param['require'] = jsonParams['require'][key2].text
+				tmp_param['require'] = 1 if jsonParams['require'][key2].text == '是' else 0
 				tmp_param['type'] = jsonParams['type'][key2].text		
 				tmp_param['description'] = jsonParams['description'][key2].text
 				result.append(tmp_param)
@@ -142,11 +164,12 @@ def formatParams(browser, params, num):
 			i = i + 1
 	return result
 
-def getList(browser, urls, apitypes, descriptions):
+def getList(browser, urls, apitypes, descriptions, category):
 	apiList = []
 	for index,url in enumerate(urls):
 		tmp = {}
 		tmp['url'] = url.text
+		tmp['category'] = category
 		if len(apitypes) > 0 :
 			tmp['type'] = apitypes[index].text
 		else:
@@ -189,6 +212,8 @@ def writeJson(apiList,nextpage):
 def crawlWiki(browser, nextpage='2'):
 	browser.get('http://wiki.klub11.com/index.php?s=/2&page_id=' + nextpage)
 
+	category = getCategory(browser)
+
 	#切换iframe test
 	browser.switch_to.frame("page-content")
 
@@ -202,7 +227,7 @@ def crawlWiki(browser, nextpage='2'):
 	descriptions = getDescription(browser)
 		
 	#根据url和apitypes来再去爬出对应的参数，并重组成dict
-	apiList = getList(browser, urls, apitypes, descriptions)
+	apiList = getList(browser, urls, apitypes, descriptions, category)
 	
 	#将apiList转成json并写入文件
 	writeJson(apiList,nextpage)
@@ -243,7 +268,7 @@ if readCookie(browser) == False:
 # for i in range(2,20):
 # 	crawlWiki(browser,str(i))
 # 	time.sleep(2)
-# for i in range(2,220):
-# 	crawlWiki(browser,str(i))
-crawlWiki(browser,'55')
+for i in range(2,300):
+	crawlWiki(browser,str(i))
+# crawlWiki(browser,'83')
 browser.quit()

@@ -109,10 +109,17 @@ def get2ndParams(browser,num,divNum,requesttype):
 
 def getJsonParams(browser,fldname,num):
 	jsonParams = {}
-	jsonParams['name'] = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[1]"%(fldname,num))
-	jsonParams['require'] = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[2]"%(fldname,num))
-	jsonParams['type'] = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[3]"%(fldname,num))
-	jsonParams['description'] = browser.find_elements_by_xpath("(//ul/li[text()='%s参数说明'])[%s]/../following-sibling::div[1]/table/tbody/tr/td[4]"%(fldname,num))
+	jsonParams['name'] = browser.find_elements_by_xpath("(//ul/li[contains(text(),'%s')])[%s]/../following-sibling::div[1]/table/tbody/tr/td[1]"%(fldname,num))
+	jsonParams['require'] = browser.find_elements_by_xpath("(//ul/li[contains(text(),'%s')])[%s]/../following-sibling::div[1]/table/tbody/tr/td[2]"%(fldname,num))
+	jsonParams['type'] = browser.find_elements_by_xpath("(//ul/li[contains(text(),'%s')])[%s]/../following-sibling::div[1]/table/tbody/tr/td[3]"%(fldname,num))
+	jsonParams['description'] = browser.find_elements_by_xpath("(//ul/li[contains(text(),'%s')])[%s]/../following-sibling::div[1]/table/tbody/tr/td[4]"%(fldname,num))
+	if len(jsonParams['name']) == 0:
+		jsonParams['name'] = browser.find_elements_by_xpath("//td[text()='%s']/../../../../following-sibling::div[1]/table/tbody/tr/td[1]"%(fldname))
+		jsonParams['require'] = browser.find_elements_by_xpath("//td[text()='%s']/../../../../following-sibling::div[1]/table/tbody/tr/td[2]"%(fldname))
+		jsonParams['type'] = browser.find_elements_by_xpath("//td[text()='%s']/../../../../following-sibling::div[1]/table/tbody/tr/td[3]"%(fldname))
+		jsonParams['description'] = browser.find_elements_by_xpath("//td[text()='%s']/../../../../following-sibling::div[1]/table/tbody/tr/td[4]"%(fldname))
+		if len(jsonParams['description']) == 0:
+			return {}
 	return 	jsonParams
 
 def getCategory(browser):
@@ -144,6 +151,29 @@ def getPrefix(browser):
 		prefix = prefix.text
 	return prefix
 
+#递归获取JsonParams
+def recursionJsonParams(result,tmp_param,i,num):
+	#如果有json，则遍历json相关参数
+	if(tmp_param['type'] == 'json'):
+		pid = i
+		i = i + 1
+		jsonParams = getJsonParams(browser,tmp_param['fieldname'],num)
+		if len(jsonParams) == 0:
+			return i
+		for key2,content_param_name in enumerate(jsonParams['name']):
+			tmp_param = {}
+			tmp_param['id'] = i
+			tmp_param['pid'] = pid
+			tmp_param['fieldname'] = jsonParams['name'][key2].text
+			tmp_param['require'] = 1 if jsonParams['require'][key2].text == '是' else 0
+			tmp_param['type'] = jsonParams['type'][key2].text		
+			tmp_param['description'] = jsonParams['description'][key2].text
+			result.append(tmp_param)
+			i = recursionJsonParams(result,tmp_param,i,num)
+	else:
+		i = i + 1
+	return i
+
 def formatParams(browser, params, num):
 	result = []
 	if len(params) == 0:
@@ -159,24 +189,9 @@ def formatParams(browser, params, num):
 		tmp_param['type'] = params['type'][key].text
 		tmp_param['description'] = params['description'][key].text
 		result.append(tmp_param)
-		
-		#如果有json，则遍历json相关参数
-		if(tmp_param['type'] == 'json'):
-			pid = i
-			i = i + 1
-			jsonParams = getJsonParams(browser,params['name'][key].text,num)
-			for key2,content_param_name in enumerate(jsonParams['name']):
-				tmp_param = {}
-				tmp_param['id'] = i
-				tmp_param['pid'] = pid
-				tmp_param['fieldname'] = jsonParams['name'][key2].text
-				tmp_param['require'] = 1 if jsonParams['require'][key2].text == '是' else 0
-				tmp_param['type'] = jsonParams['type'][key2].text		
-				tmp_param['description'] = jsonParams['description'][key2].text
-				result.append(tmp_param)
-				i = i + 1
-		else:
-			i = i + 1
+
+		#递归获取JsonParams
+		i = recursionJsonParams(result,tmp_param,i,num)
 	return result
 
 def getList(browser, urls, apitypes, descriptions, category, prefix):
@@ -219,7 +234,8 @@ def getList(browser, urls, apitypes, descriptions, category, prefix):
 def writeJson(apiList,nextpage):
 	if len(apiList):
 		apiList = json.dumps(apiList)
-		path = '%s.json'%(nextpage)
+		basepath = '../wikijson/'
+		path = basepath+'%s.json'%(nextpage)
 		fo = open(path, "w")
 		fo.write(apiList)
 		fo.close()
@@ -286,5 +302,5 @@ if readCookie(browser) == False:
 # 	time.sleep(2)
 for i in range(2,200):
 	crawlWiki(browser,str(i))
-# crawlWiki(browser,'73')
+# crawlWiki(browser,'94')
 browser.quit()

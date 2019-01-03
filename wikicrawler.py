@@ -116,10 +116,10 @@ def getJsonParams(browser,fldname,num):
 	jsonParams['type'] = browser.find_elements_by_xpath("(//ul/li[contains(text(),'%s')])[%s]/../following-sibling::div[1]/table/tbody/tr/td[3]"%(fldname,num))
 	jsonParams['description'] = browser.find_elements_by_xpath("(//ul/li[contains(text(),'%s')])[%s]/../following-sibling::div[1]/table/tbody/tr/td[4]"%(fldname,num))
 	if len(jsonParams['name']) == 0:
-		jsonParams['name'] = browser.find_elements_by_xpath("//td[text()='%s']/../../../../following-sibling::div[1]/table/tbody/tr/td[1]"%(fldname))
-		jsonParams['require'] = browser.find_elements_by_xpath("//td[text()='%s']/../../../../following-sibling::div[1]/table/tbody/tr/td[2]"%(fldname))
-		jsonParams['type'] = browser.find_elements_by_xpath("//td[text()='%s']/../../../../following-sibling::div[1]/table/tbody/tr/td[3]"%(fldname))
-		jsonParams['description'] = browser.find_elements_by_xpath("//td[text()='%s']/../../../../following-sibling::div[1]/table/tbody/tr/td[4]"%(fldname))
+		jsonParams['name'] = browser.find_elements_by_xpath("(//td[text()='%s'])[%s]/../../../../following-sibling::div[1]/table/tbody/tr/td[1]"%(fldname,num))
+		jsonParams['require'] = browser.find_elements_by_xpath("(//td[text()='%s'])[%s]/../../../../following-sibling::div[1]/table/tbody/tr/td[2]"%(fldname,num))
+		jsonParams['type'] = browser.find_elements_by_xpath("(//td[text()='%s'])[%s]/../../../../following-sibling::div[1]/table/tbody/tr/td[3]"%(fldname,num))
+		jsonParams['description'] = browser.find_elements_by_xpath("(//td[text()='%s'])[%s]/../../../../following-sibling::div[1]/table/tbody/tr/td[4]"%(fldname,num))
 		if len(jsonParams['description']) == 0:
 			return {}
 	return 	jsonParams
@@ -318,5 +318,5 @@ if readCookie(browser) == False:
 	writeCookie(browser)
 # for i in range(23,200):
 # 	crawlWiki(browser,str(i))
-crawlWiki(browser,'143')
+crawlWiki(browser,'23')
 browser.quit()

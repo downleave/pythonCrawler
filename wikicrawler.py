@@ -13,7 +13,9 @@ def login(browser):
 	return submitLoginForm(v_code,browser)
 
 def submitLoginForm(v_code, browser):
-	browser.find_element_by_xpath('//input[@name="password"]').send_keys("pf1q78rc")
+	fo = open('password.json', 'r')
+	password = fo.read()
+	browser.find_element_by_xpath('//input[@name="password"]').send_keys(password)
 	browser.find_element_by_xpath('//input[@name="v_code"]').send_keys(v_code)
 	browser.find_element_by_xpath('//button[@class="golddot_btn"]').click()
 	return browser
@@ -314,7 +316,7 @@ browser = browserInit()
 if readCookie(browser) == False:
 	browser = login(browser)
 	writeCookie(browser)
-for i in range(23,200):
-	crawlWiki(browser,str(i))
-# crawlWiki(browser,'143')
+# for i in range(23,200):
+# 	crawlWiki(browser,str(i))
+crawlWiki(browser,'143')
 browser.quit()

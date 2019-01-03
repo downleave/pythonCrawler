@@ -7,7 +7,7 @@ import time
 import json
 
 def login(browser):
-	loginPage = 'http://wiki.klub11.com/index.php?s=/home/item/pwd/item_id/2'
+	loginPage = 'http://wiki.klub11.com/index.php?s=/home/item/pwd/item_id/%s'%(crawltarget)
 	browser.get(loginPage)
 	v_code = input('请输入验证码:')
 	return submitLoginForm(v_code,browser)
@@ -20,9 +20,9 @@ def submitLoginForm(v_code, browser):
 
 def getUrls(browser):
 	#获取多个接口url
-	urls = browser.find_elements_by_xpath("//p/strong[text()='请求URL：']/../following-sibling::ul[1]/li/code")
+	urls = browser.find_elements_by_xpath("//p/strong[text()='请求URL：']/../following-sibling::ul[1]/li[1]/code")
 	if len(urls) == 0:
-		urls = browser.find_elements_by_xpath("//strong[text()='请求URL：']/following-sibling::ul[1]/li/code")
+		urls = browser.find_elements_by_xpath("//strong[text()='请求URL：']/following-sibling::ul[1]/li[1]/code")
 	return urls
 
 def getTypes(browser):
@@ -134,7 +134,15 @@ def getCategory(browser):
 		#非三级接口
 		category = browser.find_element_by_xpath("//li[@class='active']/../preceding-sibling::a[1]")
 
-	return 1 if category.get_attribute('title') == '微信接口' else 0
+	result = 0
+	# return 1 if category.get_attribute('title') == '微信接口' else 0
+	if category.get_attribute('title') == '微信接口':
+		result = 1
+	elif category.get_attribute('title') == 'CRM+ 大陆同步接口':
+		result = 2
+	elif category.get_attribute('title') == 'CRM+ HK同步接口':
+		result = 3
+	return result
 
 def getPrefix(browser):
 	#先判断是否三级接口
@@ -167,7 +175,10 @@ def recursionJsonParams(result,tmp_param,i,num):
 			tmp_param['fieldname'] = jsonParams['name'][key2].text
 			tmp_param['require'] = 1 if jsonParams['require'][key2].text == '是' else 0
 			tmp_param['type'] = jsonParams['type'][key2].text		
-			tmp_param['description'] = jsonParams['description'][key2].text
+			try:
+			    tmp_param['description'] = jsonParams['description'][key2].text
+			except:
+			    tmp_param['description'] = ''
 			result.append(tmp_param)
 			i = recursionJsonParams(result,tmp_param,i,num)
 	else:
@@ -234,16 +245,19 @@ def getList(browser, urls, apitypes, descriptions, category, prefix):
 def writeJson(apiList,nextpage):
 	if len(apiList):
 		apiList = json.dumps(apiList)
-		basepath = '../wikijson/'
+		basepath = '../wikijson%s/'%(crawltarget)
 		path = basepath+'%s.json'%(nextpage)
 		fo = open(path, "w")
 		fo.write(apiList)
 		fo.close()
 
 def crawlWiki(browser, nextpage='2'):
-	browser.get('http://wiki.klub11.com/index.php?s=/2&page_id=' + nextpage)
+	browser.get('http://wiki.klub11.com/index.php?s=/%s&page_id='%(crawltarget) + nextpage)
 
 	category = getCategory(browser)
+	if category == 3:
+		#香港接口不同步
+		return False
 	prefix = getPrefix(browser)
 
 	#切换iframe test
@@ -279,28 +293,28 @@ def writeCookie(browser):
 
 def readCookie(browser):
 	#要先访问一下才能add_cookie
-	loginPage = 'http://wiki.klub11.com/index.php?s=/home/item/pwd/item_id/2'
+	loginPage = 'http://wiki.klub11.com/index.php?s=/home/item/pwd/item_id/%s'%(crawltarget)
 	browser.get(loginPage)
 	fo = open('cookie.json', 'r')
 	cookie = fo.read()
 	cookie = json.loads(cookie)
 	browser.add_cookie(cookie[0])
 	# 尝试是否登录成功
-	browser.get('http://wiki.klub11.com/index.php?s=/2&page_id=2')
+	browser.get('http://wiki.klub11.com/index.php?s=/%s&page_id=2'%(crawltarget))
 	# browser.switch_to.frame("page-content")
 	check_is_login = browser.find_elements_by_xpath("//a[@class='show_cut_title']")
 	if len(check_is_login):
 		return True
 	return False
 
+#供应商开发平台 2
+#丰泽同步接口 4
+crawltarget = '4'
 browser = browserInit()
 if readCookie(browser) == False:
 	browser = login(browser)
 	writeCookie(browser)
-# for i in range(2,20):
-# 	crawlWiki(browser,str(i))
-# 	time.sleep(2)
-for i in range(2,200):
+for i in range(23,200):
 	crawlWiki(browser,str(i))
-# crawlWiki(browser,'94')
+# crawlWiki(browser,'143')
 browser.quit()
